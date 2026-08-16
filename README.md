@@ -28,7 +28,7 @@ Detección automática de interacciones en tu cuenta de **Wallapop** con notific
 ```
 GitHub Actions (cada 30 min)
    │
-   ├─ 1. Cookie de sesión → access token (GET /api/auth/session)
+   ├─ 1. Refresh token móvil (Keycloak, client android) → access token
    ├─ 2. Poller: stats del perfil + tus anuncios (listado + detalle con contadores)
    ├─ 3. PubNub history: eventos guardados en el canal desde la última vez (identidad)
    ├─ 4. Diff vs estado anterior → eventos
@@ -47,22 +47,29 @@ GitHub Actions (cada 30 min)
 3. Consigue tu **chat_id**: manda un mensaje al bot y visita
    `https://api.telegram.org/bot<TOKEN>/getUpdates` → campo `chat.id`.
 
-### 2. Captura de sesión (en tu PC)
+### 2. Captura del refresh token móvil (en tu PC, una vez)
 ```bash
 pip install -r requirements.txt
-python scripts/capture_one_time.py
+python scripts/capture_mobile_oauth.py
 ```
-Se abre Chrome, inicias sesión manual en Wallapop (240 s de margen). El script guarda en `secrets_local.json` (git-ignored) y en tu `.env` local:
-- `WALLAFANS_SESSION_COOKIE` — **la credencial principal** (cookie `__Secure-next-auth.session-token`, ~30 días)
-- `PUBNUB_AUTH_TOKEN`, `PUBNUB_CHANNEL`
-- Y registra todas las llamadas API (para validar el poller).
+Se abre Chrome: **Fase 1** inicias sesión en la web de Wallapop con Google como
+siempre (en Google puedes usar tu cuenta o "Prueba otra forma" → teléfono).
+**Fase 2** el script reutiliza esa sesión (SSO de Keycloak) para obtener un
+código de autorización del client `android` e intercambiarlo por un
+**refresh token**, que verifica y guarda en tu `.env` local:
+- `WALLAFANS_REFRESH_TOKEN` — **la credencial principal**
+- `WALLAFANS_REFRESH_CLIENT_ID=android`
 
-> **Cómo funciona el auth (validado):** Wallapop web entra con Google SSO vía
-> Keycloak y **nunca entrega un refresh token al navegador**. La credencial
-> duradera es la cookie de sesión; `GET /api/auth/session` con esa cookie
-> devuelve un access token fresco (5 min) para cada poll. Sin la cookie,
-> alternativas de emergencia: `WALLAFANS_EMAIL`/`WALLAFANS_PASSWORD`
-> (login Playwright, más lento y frágil).
+> **Cómo funciona el auth (validado):** `es.wallapop.com/api/auth/session`
+> (vía cookie web) funciona en tu PC pero está **bloqueado desde los runners**
+> de GitHub Actions (IP de datacenter EE.UU. → 403). En cambio
+> `api.wallapop.com` y el endpoint de tokens de Keycloak (`accounts.wallapop.com`)
+> **sí responden desde GitHub Actions**. Los clients móviles de Wallapop
+> (`android`/`ios`) aceptan el grant OAuth `refresh_token`, así que un único
+> refresh token capturado una vez permite a GitHub Actions renovar access
+> tokens (5 min) para siempre, 24/7 y sin tu PC. La cookie de sesión web queda
+> como fallback (solo local): `WALLAFANS_EMAIL`/`WALLAFANS_PASSWORD` (login
+> Playwright) son la última alternativa.
 
 ### 3. Repositorio de GitHub
 1. Crea un repo **vacío** (sin README/.gitignore/license — ya están en local; si lo creas con archivos habrá que hacer force-push).
@@ -70,8 +77,10 @@ Se abre Chrome, inicias sesión manual en Wallapop (240 s de margen). El script 
 
 | Secret | Valor |
 |---|---|
-| `WALLAFANS_SESSION_COOKIE` | del `.env` local (**obligatorio**) |
-| `WALLAFANS_EMAIL` / `WALLAFANS_PASSWORD` | (fallback) |
+| `WALLAFANS_REFRESH_TOKEN` | del `.env` local (**obligatorio**) |
+| `WALLAFANS_REFRESH_CLIENT_ID` | `android` |
+| `WALLAFANS_SESSION_COOKIE` | del `.env` local (fallback local) |
+| `WALLAFANS_EMAIL` / `WALLAFANS_PASSWORD` | (última alternativa) |
 | `WALLAFANS_USER_ID` | el de tu cuenta (de tu `.env` local) |
 | `TELEGRAM_BOT_TOKEN` | del paso 1 |
 | `TELEGRAM_CHAT_ID` | del paso 1 |
@@ -94,7 +103,7 @@ python -m wallafans.cli poll   # un ciclo completo, localmente
 
 ## Operación y mantenimiento
 
-- **Renovar sesión:** la cookie de sesión caduca (~30 días). Cuando `watchdog` avise, repite `python scripts/capture_one_time.py` y actualiza el secret `WALLAFANS_SESSION_COOKIE`.
+- **Renovar credenciales:** si el refresh token dejara de funcionar (cambio de contraseña, revocación), el `watchdog` avisará. Repite `python scripts/capture_mobile_oauth.py` y actualiza los secrets `WALLAFANS_REFRESH_TOKEN`/`WALLAFANS_REFRESH_CLIENT_ID`.
 - **Exportar datos** para tu estudio: `python scripts/analytics.py --csv datos.csv`.
 - **Ejecución manual** de un poll: Actions → *WallaFans - Poll* → *Run workflow*.
 

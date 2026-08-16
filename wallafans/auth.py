@@ -143,13 +143,6 @@ def login_playwright(email: str, password: str) -> str:
 
 def get_access_token() -> str:
     """Return a fresh, valid access token using the first working strategy."""
-    if settings.session_cookie:
-        try:
-            token = get_token_from_session_cookie(settings.session_cookie)
-            log.info("access token refreshed via session cookie")
-            return token
-        except TokenError as exc:
-            log.warning("session cookie refresh failed: %s", exc)
     if settings.refresh_token:
         try:
             token = refresh_via_keycloak(settings.refresh_token, settings.refresh_client_id)
@@ -157,6 +150,13 @@ def get_access_token() -> str:
             return token
         except TokenError as exc:
             log.warning("refresh via Keycloak failed: %s", exc)
+    if settings.session_cookie:
+        try:
+            token = get_token_from_session_cookie(settings.session_cookie)
+            log.info("access token refreshed via session cookie")
+            return token
+        except TokenError as exc:
+            log.warning("session cookie refresh failed: %s", exc)
     if settings.email and settings.password:
         token = login_playwright(settings.email, settings.password)
         log.info("access token obtained via Playwright login")
