@@ -72,7 +72,7 @@ Se abre Chrome, inicias sesión manual en Wallapop (240 s de margen). El script 
 |---|---|
 | `WALLAFANS_SESSION_COOKIE` | del `.env` local (**obligatorio**) |
 | `WALLAFANS_EMAIL` / `WALLAFANS_PASSWORD` | (fallback) |
-| `WALLAFANS_USER_ID` | `USER_ID_PLACEHOLDER` |
+| `WALLAFANS_USER_ID` | el de tu cuenta (de tu `.env` local) |
 | `TELEGRAM_BOT_TOKEN` | del paso 1 |
 | `TELEGRAM_CHAT_ID` | del paso 1 |
 | `PUBNUB_SUBSCRIBE_KEY` / `PUBNUB_PUBLISH_KEY` | claves públicas (config) |
