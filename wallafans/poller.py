@@ -52,43 +52,101 @@ class Poller:
         return out
 
     def _fetch_items(self) -> list[dict]:
-        return self.api.list_my_items(settings_user_id())
+        """List my items and enrich each with the full detail (counters).
+
+        List endpoint (verified): GET /api/v3/users/{uid}/items -> basic fields.
+        Detail endpoint (verified): GET /api/v3/items/{id} -> counters with
+        favorites/views/conversations, price.cash, images[].urls, share_url.
+        """
+        basic = self.api.list_my_items(settings_user_id())
+        out: list[dict] = []
+        for raw in basic:
+            item_id = str(raw.get("id", ""))
+            merged = dict(raw)
+            if item_id:
+                detail = self.api.get_item(item_id)
+                if isinstance(detail, dict) and detail:
+                    merged = {**raw, **detail}
+            out.append(merged)
+        return out
 
     @staticmethod
     def _item_model(raw: dict) -> M.Product:
-        price = _float(raw.get("price"))
+        title = raw.get("title")
+        if isinstance(title, dict):
+            title = title.get("original", "")
+
+        price: float | None = None
+        currency = "EUR"
+        p = raw.get("price")
+        if isinstance(p, dict):
+            cash = p.get("cash") if isinstance(p.get("cash"), dict) else p
+            price = _float(cash.get("amount"))
+            currency = str(cash.get("currency", "EUR") or "EUR")
+        elif p is not None:
+            price = _float(p)
         if price is not None and price > 1000:  # cents vs euros heuristics
             price = price / 100.0
+
         images = raw.get("images") or []
         image_url = ""
         if images and isinstance(images[0], dict):
-            image_url = images[0].get("small") or images[0].get("medium") or images[0].get("large") or ""
-        elif images and isinstance(images[0], str):
-            image_url = images[0]
+            im = images[0]
+            urls = im.get("urls") if isinstance(im.get("urls"), dict) else {}
+            image_url = (
+                urls.get("small") or im.get("small")
+                or urls.get("medium") or im.get("medium")
+                or urls.get("large") or im.get("url") or ""
+            )
+
+        counters = raw.get("counters") if isinstance(raw.get("counters"), dict) else {}
+        views = _num(counters.get("views")) or _num(raw.get("views"))
+        favorites = _num(counters.get("favorites")) or _num(
+            raw.get("favorite_count")
+            or raw.get("favorites_count")
+            or raw.get("favourites_count")
+        )
+
+        url = (
+            str(raw.get("share_url", "") or raw.get("url_share", "") or "")
+            or str(raw.get("web_slug", "") or "")
+            or f"https://es.wallapop.com/item/{raw.get('id')}"
+        )
         return M.Product(
             id=str(raw.get("id", "")),
-            title=str(raw.get("title", "") or ""),
+            title=str(title or ""),
             price=price,
-            currency=str(raw.get("currency", "EUR") or "EUR"),
+            currency=currency,
             status=str(raw.get("sale_status", "") or raw.get("status", "") or ""),
             category_id=str(raw.get("category_id", "") or ""),
-            views=_num(raw.get("views")),
-            favorites=_num(
-                raw.get("favorite_count")
-                or raw.get("favorites_count")
-                or raw.get("favourites_count")
-                or raw.get("favourite")
-                or raw.get("favorites")
-            ),
+            views=views,
+            favorites=favorites,
             image_url=image_url,
-            url=str(raw.get("web_slug", "") or f"https://es.wallapop.com/item/{raw.get('id')}"),
+            url=url,
             published_at=str(raw.get("creation_date", "") or ""),
         )
 
     def _fetch_conversations(self) -> list[dict]:
         return self.api.list_conversations()
 
+    def _fetch_unread_messages(self) -> int:
+        status, body = self.api.get(
+            "/api/v3/instant-messaging/messages/unread", auth=True
+        )
+        if isinstance(body, dict):
+            return _num(body.get("unread_counter"))
+        return 0
+
     # ── diff ────────────────────────────────────────────────────────
+    def _diff_messages(self, prev: int, curr: int) -> None:
+        if curr <= prev:
+            return
+        self.events.append(M.Event(
+            kind=M.MESSAGE_NEW, ts=utcnow(), source=M.SOURCE_POLL,
+            delta=curr - prev,
+            totals={"unread_messages": curr},
+            dedup_key=f"msg:{prev}:{curr}",
+        ))
     def _diff_counters(self, prev: dict, curr: dict) -> None:
         p_fav = prev.get("profileFavoritedReceived", 0)
         c_fav = curr.get("profileFavoritedReceived", p_fav)
@@ -201,6 +259,7 @@ class Poller:
     # ── main entry ──────────────────────────────────────────────────
     def run(self) -> tuple[list[M.Event], dict]:
         self.state = self.store.load() or {}
+        first_run = not bool(self.state.get("last_poll"))
         prev_counters = self.state.get("counters", {})
         prev_items = self.state.get("items", {})
         prev_convs = set(self.state.get("conversation_ids", []))
@@ -208,12 +267,20 @@ class Poller:
         counters = self._fetch_counters()
         items = self._fetch_items()
         conversations = self._fetch_conversations()
+        unread = self._fetch_unread_messages()
 
-        self._diff_counters(prev_counters, counters)
-        self._diff_items(prev_items, items)
-        self._diff_conversations(prev_convs, conversations)
+        if first_run:
+            # Baseline snapshot: store counters/items/messages but emit no
+            # events, so pre-existing state (e.g. old reports) is not notified.
+            log.info("first run: storing baseline snapshot without notifications")
+        else:
+            self._diff_counters(prev_counters, counters)
+            self._diff_items(prev_items, items)
+            self._diff_conversations(prev_convs, conversations)
+            self._diff_messages(int(prev_counters.get("unread_messages", 0)), unread)
 
         self.state["counters"] = counters
+        self.state["counters"]["unread_messages"] = unread
         self.state["last_poll"] = utcnow()
 
         return self.events, self.state

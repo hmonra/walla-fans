@@ -141,34 +141,14 @@ class WallapopAPI:
         return body if isinstance(body, dict) else {}
 
     def list_my_items(self, user_id: str) -> list[dict]:
-        """Return the logged user's items as a list of dicts.
+        """Return the logged user's items (basic fields) via users/{id}/items.
 
-        Tries several shapes (search GET, search POST, plain user items) and
-        unwraps whatever the API currently returns. The capture tool validates
-        which candidate works with the real session.
+        Verified live (2026-08): GET /api/v3/users/{uid}/items -> {"data":[...]}.
+        The list payload is limited (id, title, description, price, images,
+        slug, category_id) — counters live in the item detail endpoint.
         """
-        attempts: list[list[dict]] = []
-        # 1) search GET with user filter
-        for params in (
-            {"user_ids": user_id},
-            {"user_ids": user_id, "order_by": "creation_date", "order_by_desc": "true"},
-            {"user_id": user_id},
-        ):
-            status, body = self.get(E.MY_ITEMS_CANDIDATES[0], params=params, auth=True)
-            attempts.append(self._unwrap_items(body))
-        # 2) search POST (API-style)
-        for payload in (
-            {"filters": {"user_ids": [user_id]}, "keywords": "", "order_by": "creation_date", "order_by_desc": "true"},
-            {"filters": {"user_ids": [user_id]}},
-            {"user_ids": [user_id]},
-        ):
-            status, body = self.post(E.MY_ITEMS_CANDIDATES[0], data=payload, auth=True)
-            attempts.append(self._unwrap_items(body))
-        # 3) plain user item paths
-        for path in E.MY_ITEMS_CANDIDATES[1:]:
-            status, body = self.get(path.format(user_id=user_id), auth=True)
-            attempts.append(self._unwrap_items(body))
-        return self._first_valid_items(attempts)
+        status, body = self.get(E.MY_ITEMS.format(user_id=user_id), auth=True)
+        return self._unwrap_items(body)
 
     @staticmethod
     def _unwrap_items(body: Any) -> list[dict]:
@@ -189,15 +169,11 @@ class WallapopAPI:
                 out.append(c)
         return out
 
-    @staticmethod
-    def _first_valid_items(payloads: list[list[dict]]) -> list[dict]:
-        for items in payloads:
-            if items:
-                return items
-        return []
-
     # ── item detail / conversations ─────────────────────────────────
     def get_item(self, item_id: str, auth: bool = True) -> dict:
+        """Full item detail; verified live. Contains counters.favorites,
+        counters.views, counters.conversations, favorited.flag, price.cash,
+        images[].urls, share_url, slug, user."""
         status, body = self.get(E.ITEM_DETAIL.format(item_id=item_id), auth=auth)
         return body if isinstance(body, dict) else {}
 

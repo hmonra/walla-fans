@@ -20,6 +20,7 @@ from .client import WallapopAPI
 from .enrich import enrich_actor
 from .models import (
     CONVERSATION_NEW,
+    MESSAGE_NEW,
     PRODUCT_VIEWS,
     Event,
 )
@@ -36,7 +37,7 @@ log = logging.getLogger("wallafans")
 VIEW_ALERT_THRESHOLD = 20  # only alert on view deltas >= this
 
 # Kinds that are logged but never notified (per user requirements)
-SILENT_KINDS = {CONVERSATION_NEW}
+SILENT_KINDS = {CONVERSATION_NEW, MESSAGE_NEW}
 
 
 def notifyable(event: Event) -> bool:
@@ -244,7 +245,7 @@ def _cmd_watchdog(args) -> int:
     if settings.telegram_bot_token and settings.telegram_chat_id:
         bot = TelegramBot(settings.telegram_bot_token, settings.telegram_chat_id)
         text = (
-            "🚨 <b>ALERTA WALLA SENTRY</b>\n"
+            "🚨 <b>ALERTA WALLAFANS</b>\n"
             f"El último poll fue hace <b>{age_minutes} min</b>.\n"
             "Probablemente el refresh token caducó o la API falla.\n"
             "Revisa los secrets / renueva el token."

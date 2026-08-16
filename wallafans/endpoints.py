@@ -17,11 +17,8 @@ ME = "/api/v3/users/me"
 NOTIFICATIONS_CONFIG = "/api/v3/notifications/me/config"
 
 # Candidates for listing the logged user's own items
-MY_ITEMS_CANDIDATES = [
-    "/api/v3/items/search",
-    "/api/v3/users/{user_id}/items",
-    "/api/v3/users/me/items",
-]
+# Verified live (2026-08): GET /api/v3/users/{uid}/items -> {"data":[...]}
+MY_ITEMS = "/api/v3/users/{user_id}/items"
 
 ITEM_DETAIL = "/api/v3/items/{item_id}"
 
