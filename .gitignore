@@ -34,3 +34,6 @@ pw-browsers/
 
 # ---- Temporary OAuth capture profile (contains cookies) ----
 .capture_profile/
+
+# ---- Experiment snapshots (may contain private data: email, phone) ----
+state/experiment/
