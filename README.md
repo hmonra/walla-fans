@@ -1,4 +1,4 @@
-# Walla Sentry 🛰️
+# WallaFans 🛰️
 
 Detección automática de interacciones en tu cuenta de **Wallapop** con notificación rica a **Telegram**, ejecución continua vía **GitHub Actions**, y datos históricos para análisis de negocio.
 
@@ -80,16 +80,16 @@ git push -u origin main
 
 ### 4. Prueba
 ```bash
-python -m wallasentry.cli test --send
-python -m wallasentry.cli state
-python -m wallasentry.cli poll   # un ciclo completo, localmente
+python -m wallafans.cli test --send
+python -m wallafans.cli state
+python -m wallafans.cli poll   # un ciclo completo, localmente
 ```
 
 ## Operación y mantenimiento
 
 - **Renovar sesión:** el refresh token caduca (~30 días). Cuando `watchdog` avise, repite `python scripts/capture_one_time.py` y actualiza el secret.
 - **Exportar datos** para tu estudio: `python scripts/analytics.py --csv datos.csv`.
-- **Ejecución manual** de un poll: Actions → *Walla Sentry - Poll* → *Run workflow*.
+- **Ejecución manual** de un poll: Actions → *WallaFans - Poll* → *Run workflow*.
 
 ## Seguridad
 - `.env` y `secrets_local.json` están en `.gitignore` y **no se suben**.

@@ -1,4 +1,4 @@
-"""Walla Sentry — Wallapop interaction tracker.
+"""WallaFans — Wallapop interaction tracker.
 
 Detects (via polling every N minutes on GitHub Actions) changes in your
 Wallapop account: profile favorites, product favorites/views/price/status,

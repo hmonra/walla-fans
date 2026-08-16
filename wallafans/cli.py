@@ -31,7 +31,7 @@ from .telegram.digest import build_evening_digest, build_morning_digest
 from .telegram.formats import format_batch, format_event, fmt_date_es, madrid_now
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-log = logging.getLogger("wallasentry")
+log = logging.getLogger("wallafans")
 
 VIEW_ALERT_THRESHOLD = 20  # only alert on view deltas >= this
 
@@ -211,7 +211,7 @@ def _cmd_test(args) -> int:
         log.warning("No Wallapop auth configured; skipped API check")
 
     if args.send:
-        ok = bot.send_message("<b>✅ Walla Sentry</b> — prueba OK")
+        ok = bot.send_message("<b>✅ WallaFans</b> — prueba OK")
         log.info("Test message sent: %s", ok)
     return 0
 
@@ -256,7 +256,7 @@ def _cmd_watchdog(args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     load_dotenv()
-    parser = argparse.ArgumentParser(prog="wallasentry", description="Walla Sentry — Wallapop interaction tracker")
+    parser = argparse.ArgumentParser(prog="wallafans", description="WallaFans — Wallapop interaction tracker")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_poll = sub.add_parser("poll", help="run one polling cycle")

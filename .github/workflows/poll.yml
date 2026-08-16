@@ -1,4 +1,4 @@
-name: Walla Sentry - Poll
+name: WallaFans - Poll
 
 # Runs every 30 minutes + manual trigger.
 # NOTE: intentionally NO `push:` trigger, to avoid loops when the bot commits state.
@@ -8,7 +8,7 @@ on:
     - cron: '*/30 * * * *'
 
 concurrency:
-  group: wallasentry-poll
+  group: wallafans-poll
   cancel-in-progress: false
 
 jobs:
@@ -42,11 +42,11 @@ jobs:
           PUBNUB_AUTH_TOKEN: ${{ secrets.PUBNUB_AUTH_TOKEN }}
           PUBNUB_CHANNEL: ${{ secrets.PUBNUB_CHANNEL }}
           PUBNUB_LAST_TIMETOKEN: ${{ secrets.PUBNUB_LAST_TIMETOKEN }}
-        run: python -m wallasentry.cli poll
+        run: python -m wallafans.cli poll
 
       - name: Commit state back
         run: |
-          git config user.name "wallasentry-bot"
+          git config user.name "wallafans-bot"
           git config user.email "actions@github.com"
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add state/

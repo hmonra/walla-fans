@@ -19,7 +19,7 @@ import requests
 from . import endpoints as E
 from .config import settings
 
-log = logging.getLogger("wallasentry.auth")
+log = logging.getLogger("wallafans.auth")
 
 
 def decode_jwt(token: str) -> dict:
@@ -56,7 +56,7 @@ def refresh_via_keycloak(refresh_token: str, client_id: str = "web") -> str:
             "refresh_token": refresh_token,
             "client_id": client_id,
         },
-        headers={"User-Agent": "WallaSentry/0.1", "Content-Type": "application/x-www-form-urlencoded"},
+        headers={"User-Agent": "WallaFans/0.1", "Content-Type": "application/x-www-form-urlencoded"},
         timeout=20,
     )
     if resp.status_code != 200:

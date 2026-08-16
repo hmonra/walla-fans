@@ -17,9 +17,9 @@ from . import endpoints as E
 from . import models as M
 from .config import settings
 
-log = logging.getLogger("wallasentry.pubnub")
+log = logging.getLogger("wallafans.pubnub")
 
-UUID = "wallasentry-gha"
+UUID = "wallafans-gha"
 
 
 def fetch_history(
@@ -37,7 +37,7 @@ def fetch_history(
         "count": count,
         "auth": auth_token,
         "uuid": UUID,
-        "pnsdk": "WallaSentry/0.1",
+        "pnsdk": "WallaFans/0.1",
     }
     if start_timetoken:
         params["start"] = start_timetoken

@@ -7,7 +7,7 @@ from typing import Any
 
 import requests
 
-log = logging.getLogger("wallasentry.telegram")
+log = logging.getLogger("wallafans.telegram")
 
 API = "https://api.telegram.org/bot{token}/{method}"
 

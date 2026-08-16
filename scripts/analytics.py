@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from wallasentry.store import EventLog  # noqa: E402
+from wallafans.store import EventLog  # noqa: E402
 
 
 def summarize(events: list[dict]) -> None:

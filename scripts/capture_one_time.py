@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-time capture tool for Walla Sentry.
+"""One-time capture tool for WallaFans.
 
 Opens a real Chrome window, you log in to Wallapop once, and this script
 intercepts the traffic to harvest:
@@ -27,8 +27,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from wallasentry.config import load_dotenv, settings  # noqa: E402
-from wallasentry import endpoints as E  # noqa: E402
+from wallafans.config import load_dotenv, settings  # noqa: E402
+from wallafans import endpoints as E  # noqa: E402
 
 SECRETS_FILE = ROOT / "secrets_local.json"
 ENV_FILE = ROOT / ".env"

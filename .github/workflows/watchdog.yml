@@ -1,4 +1,4 @@
-name: Walla Sentry - Watchdog
+name: WallaFans - Watchdog
 
 # Alerts to Telegram if polling has been silent for too long
 # (e.g. expired refresh token, API blocked).
@@ -25,5 +25,5 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python -m wallasentry.cli watchdog --max-age 90
+        run: python -m wallafans.cli watchdog --max-age 90
         continue-on-error: true

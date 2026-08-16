@@ -14,7 +14,7 @@ from . import models as M
 from .client import WallapopAPI
 from .store import StateStore
 
-log = logging.getLogger("wallasentry.poller")
+log = logging.getLogger("wallafans.poller")
 
 
 def utcnow() -> str:

@@ -9,7 +9,7 @@ import logging
 from .client import WallapopAPI
 from .models import Actor
 
-log = logging.getLogger("wallasentry.enrich")
+log = logging.getLogger("wallafans.enrich")
 
 
 def enrich_actor(api: WallapopAPI, actor: Actor) -> Actor:
