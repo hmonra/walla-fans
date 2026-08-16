@@ -2,32 +2,39 @@ name: Diag
 
 on:
   workflow_dispatch:
+    inputs:
+      token:
+        description: fresh access token (5 min TTL)
+        required: true
 
 jobs:
   diag:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Probe endpoints
+      - name: Probe with full browser UA + fresh token
         env:
           WALLAFANS_SESSION_COOKIE: ${{ secrets.WALLAFANS_SESSION_COOKIE }}
+          TOKEN: ${{ github.event.inputs.token }}
         run: |
-          echo "=== session endpoint (web) ==="
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          echo "=== session endpoint (full UA) ==="
           curl -s -o /dev/null -w "%{http_code}\n" \
             -H "Cookie: __Secure-next-auth.session-token=${WALLAFANS_SESSION_COOKIE}" \
-            -H "User-Agent: Mozilla/5.0" \
+            -H "User-Agent: ${UA}" -H "Accept: application/json" \
             "https://es.wallapop.com/api/auth/session"
-          echo "=== api.wallapop.com /users/me (no auth) ==="
+          echo "=== api /users/me (full UA + Bearer) ==="
+          curl -s -w "\n%{http_code}\n" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "User-Agent: ${UA}" -H "Accept: application/json" -H "X-DeviceOS: 0" \
+            "https://api.wallapop.com/api/v3/users/me" | head -c 600
+          echo ""
+          echo "=== api /users/qzm4p84pylzv/stats (full UA + Bearer) ==="
           curl -s -o /dev/null -w "%{http_code}\n" \
-            -H "User-Agent: Mozilla/5.0" \
-            "https://api.wallapop.com/api/v3/users/me"
-          echo "=== api.wallapop.com root ==="
-          curl -s -o /dev/null -w "%{http_code}\n" \
-            -H "User-Agent: Mozilla/5.0" \
-            "https://api.wallapop.com/"
-          echo "=== accounts.wallapop.com token endpoint (dummy) ==="
-          curl -s -o /dev/null -w "%{http_code}\n" \
-            -X POST -d "grant_type=password&client_id=web&username=x&password=x" \
-            "https://accounts.wallapop.com/realms/wallapop-internal/protocol/openid-connect/token"
-          echo "=== geo ==="
-          curl -s https://ipinfo.io/json | head -c 300
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "User-Agent: ${UA}" -H "Accept: application/json" -H "X-DeviceOS: 0" \
+            "https://api.wallapop.com/api/v3/users/qzm4p84pylzv/stats"
+          echo "=== accounts token endpoint (password grant, client web) ==="
+          curl -s -w "\n%{http_code}\n" -X POST \
+            -d "grant_type=password&client_id=web&username=x&password=x" \
+            "https://accounts.wallapop.com/realms/wallapop-internal/protocol/openid-connect/token" | head -c 300
