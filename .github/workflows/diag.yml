@@ -1,0 +1,33 @@
+name: Diag
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe endpoints
+        env:
+          WALLAFANS_SESSION_COOKIE: ${{ secrets.WALLAFANS_SESSION_COOKIE }}
+        run: |
+          echo "=== session endpoint (web) ==="
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            -H "Cookie: __Secure-next-auth.session-token=${WALLAFANS_SESSION_COOKIE}" \
+            -H "User-Agent: Mozilla/5.0" \
+            "https://es.wallapop.com/api/auth/session"
+          echo "=== api.wallapop.com /users/me (no auth) ==="
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            -H "User-Agent: Mozilla/5.0" \
+            "https://api.wallapop.com/api/v3/users/me"
+          echo "=== api.wallapop.com root ==="
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            -H "User-Agent: Mozilla/5.0" \
+            "https://api.wallapop.com/"
+          echo "=== accounts.wallapop.com token endpoint (dummy) ==="
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            -X POST -d "grant_type=password&client_id=web&username=x&password=x" \
+            "https://accounts.wallapop.com/realms/wallapop-internal/protocol/openid-connect/token"
+          echo "=== geo ==="
+          curl -s https://ipinfo.io/json | head -c 300
