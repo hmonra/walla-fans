@@ -145,7 +145,11 @@ def format_event(event: M.Event) -> str | None:
 
 
 def format_batch(events: list[M.Event]) -> str:
-    """Compact summary used when too many events arrived in one run."""
+    """Compact summary used when too many events arrived in one run.
+
+    Groups product events by item and shows concrete data for each one:
+    favorite delta + current total, views, price and a link to the ad.
+    """
     count_by_kind: dict[str, int] = {}
     for e in events:
         count_by_kind[e.kind] = count_by_kind.get(e.kind, 0) + 1
@@ -163,12 +167,42 @@ def format_batch(events: list[M.Event]) -> str:
     for kind, count in sorted(count_by_kind.items()):
         label = labels.get(kind, kind)
         lines.append(f"· {label}: <b>{count}</b>")
-    products = sorted({(e.product.title or e.product.id) for e in events if e.product})
-    if products:
+
+    by_product: dict[str, dict] = {}
+    for e in events:
+        if not e.product:
+            continue
+        info = by_product.setdefault(
+            e.product.id,
+            {"product": e.product, "fav_delta": 0, "views_delta": 0, "kinds": set()},
+        )
+        if e.kind == M.PRODUCT_FAVORITE_DELTA:
+            info["fav_delta"] += e.delta
+        elif e.kind == M.PRODUCT_VIEWS:
+            info["views_delta"] += e.delta
+        info["kinds"].add(e.kind)
+
+    if by_product:
         lines.append("")
-        lines.append("Anuncios implicados:")
-        for title in products[:8]:
-            lines.append(f"  - {esc(title)}")
+        lines.append("Detalle por anuncio:")
+        for _, info in sorted(
+            by_product.items(), key=lambda kv: (-kv[1]["fav_delta"], -kv[1]["views_delta"])
+        ):
+            prod = info["product"]
+            bits: list[str] = []
+            if M.PRODUCT_FAVORITE_DELTA in info["kinds"]:
+                sign = "➕" if info["fav_delta"] >= 0 else "➖"
+                bits.append(f"{sign}{abs(info['fav_delta'])} → <b>{prod.favorites}</b> favs")
+            if M.PRODUCT_VIEWS in info["kinds"]:
+                bits.append(f"👀 {prod.views}")
+            if M.PRODUCT_PRICE_CHANGE in info["kinds"]:
+                bits.append(f"💰 {fmt_price(prod.price)}")
+            line = f"• «{esc(prod.title)}»"
+            if bits:
+                line += " — " + " · ".join(bits)
+            if prod.url:
+                line += f" · <a href=\"{esc(prod.url)}\">ver</a>"
+            lines.append(line)
     return "\n".join(lines)
 
 
