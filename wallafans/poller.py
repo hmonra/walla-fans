@@ -183,6 +183,7 @@ class Poller:
                 # New product: nothing to notify, but keep it tracked.
                 self._upsert_item(item, notify=False)
                 continue
+            prev = self._item_model(prev) if isinstance(prev, dict) else prev
             deltas: list[M.Event] = []
             if item.favorites != prev.favorites:
                 deltas.append(M.Event(

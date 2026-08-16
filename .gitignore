@@ -31,3 +31,6 @@ wallafans_output/
 
 # ---- Playwright browsers cache ----
 pw-browsers/
+
+# ---- Temporary OAuth capture profile (contains cookies) ----
+.capture_profile/
