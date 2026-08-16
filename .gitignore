@@ -1,0 +1,33 @@
+# ---- Secrets (NEVER commit) ----
+.env
+.env.*
+!.env.example
+secrets_local.json
+state/secrets*
+*.pem
+*.crt
+*.key
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ---- OS ----
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ---- Local run artifacts ----
+*.log
+wallasentry_output/
+*.sqlite3
+*.db
+
+# ---- Playwright browsers cache ----
+pw-browsers/

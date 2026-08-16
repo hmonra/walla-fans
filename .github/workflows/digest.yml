@@ -1,0 +1,52 @@
+name: Walla Sentry - Digest
+
+# Sends the evening (21:00) and morning (08:00) Madrid digests.
+# Runs at multiple UTC hours so it works under both CET and CEST (DST-safe);
+# the script itself decides when it is exactly the right local time.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 5,6,7,8,18,19,20,21 * * *'
+
+concurrency:
+  group: wallasentry-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install --quiet requests
+
+      - name: Run digest
+        env:
+          WALLAFANS_USER_ID: ${{ secrets.WALLAFANS_USER_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DIGEST_TZ: Europe/Madrid
+          DIGEST_EVENING_HOUR: '21'
+          DIGEST_MORNING_HOUR: '8'
+        run: python -m wallasentry.cli digest --when auto
+
+      - name: Commit state back
+        run: |
+          git config user.name "wallasentry-bot"
+          git config user.email "actions@github.com"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git add state/
+          if git diff --cached --quiet; then
+            echo "no state changes"
+          else
+            git commit -m "chore(state): digest $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push origin HEAD
+          fi
